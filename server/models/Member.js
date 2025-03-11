@@ -4,7 +4,7 @@ const memberSchema = mongoose.Schema(
     {
         name: {
             type: String,
-            required: [true, 'Please enter memmber name'],
+            required: [true, 'Please enter member name'],
         },
         phone: {
             type: String,
@@ -13,15 +13,20 @@ const memberSchema = mongoose.Schema(
         email: {
             type: String,
             default: null,
+            unique: true
         },
-        rehearsal_date: {
-            type: Date,
+        password: {
+            type: String,
             default: null,
         },
-        attended: {
+        isAdmin: {
             type: Boolean,
             default: false,
         },
+        active: {
+            type: Boolean,
+            default: true,
+        }
     }, { timestamps: true }
 )
 
