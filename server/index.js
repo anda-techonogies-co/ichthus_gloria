@@ -5,6 +5,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const memberRoutes = require('./routes/members');
 const sessionRoutes = require('./routes/sessions');
+const statsRoutes = require('./routes/stats');
 const authRoutes = require('./routes/auth');
 const cors = require('cors');
 
@@ -34,4 +35,5 @@ app.get('/', (req, res)=> res.send('Hello World!'))
 app.use('/api', authRoutes);
 app.use('/api', memberRoutes);
 app.use('/api', sessionRoutes);
+app.use('/api', statsRoutes);
 

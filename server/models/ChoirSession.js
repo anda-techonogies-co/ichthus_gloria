@@ -1,22 +1,30 @@
 const mongoose = require('mongoose');
 
-const choirSession = mongoose.Schema(
+const choirSessionSchema = mongoose.Schema(
     {
-
-        sessionDescription: {
-            type: String,
-            default: null
-        },
-        member: {
+      sessionType: {
+        type: String,
+        required: true,
+      },
+      members: [
+        {
+          member: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Member',
-            required: true, 
-        },
-        memberAttended: {
+            required: true,
+          },
+          hasAttended: {
             type: Boolean,
             default: false,
+          },
         },
-    }, { timestamps: true }
-)
+      ],
+      sessionDate: {
+        type: Date,
+        required: true
+      }
+    },
+    { timestamps: true }
+  )
 
-module.exports = mongoose.model('ChoirSession', choirSession);
+module.exports = mongoose.model('ChoirSession', choirSessionSchema);
