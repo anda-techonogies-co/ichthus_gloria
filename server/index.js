@@ -32,8 +32,8 @@ mongoose.connect(process.env.MONGO_URI, {
 
 app.get('/', (req, res)=> res.send('Hello World!'))
 
-app.use('/api', authRoutes);
-app.use('/api', memberRoutes);
-app.use('/api', sessionRoutes);
-app.use('/api', statsRoutes);
+app.use('/api/v1', authRoutes);
+app.use('/api/v1', memberRoutes);
+app.use('/api/v1', sessionRoutes);
+app.use('/api/v1', statsRoutes);
 

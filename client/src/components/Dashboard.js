@@ -21,11 +21,11 @@ import {
 import {useNavigate } from 'react-router-dom';
 import {
   HomeOutlined,
-  BarChartOutlined,
   LogoutOutlined,
   ScheduleOutlined,
   PlusOutlined,
   EditOutlined,
+  TeamOutlined,
 }from '@ant-design/icons';
 import moment from 'moment';
 
@@ -36,6 +36,7 @@ import { Stats } from './Stats';
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
 const { Search } = Input;
+const {RangePicker} = DatePicker;
 
 function Dashboard() {
   const [selectedKey, setSelectedKey] = useState('home');
@@ -49,25 +50,38 @@ function Dashboard() {
   const [editMemberId, setEditMemberId] = useState(null);
   const [editMemberAttended, setEditMemberAttended] = useState(null);
   const [editAttendanceModalVisible, setEditAttendanceModalVisible] = useState(false);
+  const [editMemberModalVisible, setEditMemberModalVisible] = useState(false);
+
+  const [form] = Form.useForm();
+
+  const [isFormValid, setIsFormValid] = useState(false);
+
+
   const [memberName, setMemberName] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
   const [editSessionDate, setEditSessionDate] = useState(null);
   const [loading, setLoading] = useState(false)
 
-  const [choirStats, setChoirStats] = useState({})
+  const [newMemberModalVisible, setNewMemberModalVisible] = useState(false)
+
+
+  const [choirStats, setChoirStats] = useState(null)
 
   const [messageApi, contextHolder] = message.useMessage();
 
+  const [selectedDateRange, setSelectedDateRange] = useState([
+    moment().startOf('month'),
+    moment().endOf('month')
+  ]);
+
+  const [statsSessionType, setStatsSessionType] = useState('rehearsal');
 
   const [searchText, setSearchText] = useState('');
 
   const [sessionAttendeeSearchText, setSessionAttendeeSearchText] = useState('');
 
-  const errorMsg = (msg) =>{
-    messageApi.open({
-      type: 'error',
-      content: msg
-    })
+  const showMsg = (type, content) =>{
+    messageApi.open({type,content})
   }
 
   const navigate = useNavigate();
@@ -85,6 +99,8 @@ function Dashboard() {
       fetchActiveMembers();
     }else if(selectedKey === 'choirSessions'){
       fetchChoirSessions()
+    }else if(selectedKey === 'home'){
+      getChoirStats();
     }
   }, [selectedKey]);
 
@@ -99,31 +115,51 @@ function Dashboard() {
   }, [isModalVisible, activeMembers]);
 
 
-  useEffect(()=>{
-    getChoirStats();
-  },[])
+  const getChoirStats = async () => {
+    try {
+      const formattedStartDate = selectedDateRange[0].format("YYYY-MM-DD");
+      const formattedEndDate = selectedDateRange[1].format("YYYY-MM-DD");
 
-  const getChoirStats = async () =>{
-    const response = await api.get('/api/stats');
-    setChoirStats(response.data);
-  }
+      const queryParams = new URLSearchParams({
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+        sessionType: statsSessionType
+      }).toString();
+
+      const response = await api.get(`/api/v1/stats?${queryParams}`);
+      setChoirStats(response.data);
+      if(choirStats.attendanceStats.every(itm => itm.value === 0)) {
+        showMsg('info', 'No data found for the given criteria' )
+      }else {
+        showMsg('success', 'Success')
+      }
+    } catch (error) {
+      if (error.response) {
+        showMsg('error',error.response.data.message || "Failed to fetch choir stats.");
+      }
+    }
+  };
+
 
   const fetchActiveMembers = async () => {
+    setLoading(true)
     try {
-      const response = await api.get('/api/members');
+      const response = await api.get('/api/v1/members');
       const activeMembersData = response.data.filter(member => {
         return member.active && member.isAdmin === false;
       });
       setActiveMembers(activeMembersData);
     } catch (error) {
       console.error('Error fetching active members:', error);
+    }finally{
+      setLoading(false)
     }
   };
 
   const fetchChoirSessions = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/choir-sessions');
+      const response = await api.get('/api/v1/choir-sessions');
       const choirSessionData = response.data;
       setChoirSessions(choirSessionData);
     } catch (error) {
@@ -133,6 +169,7 @@ function Dashboard() {
 
     }
   };
+
 
 
   const handleLogout = async () => {
@@ -195,6 +232,10 @@ function Dashboard() {
     setSelectSessionType(value);
   };
 
+  const handleStatsSessionType = (value) => {
+    setStatsSessionType(value);
+  };
+
   const handleEditSessionType = (value) => {
     setEditSessionType(value);
   };
@@ -236,8 +277,19 @@ function Dashboard() {
   const showEditAttendanceModal = (record) => {
     setEditAttendanceModalVisible(true);
     setMemberName(record.member.name);
-    setEditMemberAttended(record.memberAttended);
+    setEditMemberAttended(record.member.phone);
     setEditMemberId(() => record.member._id);
+  };
+
+  const showEditMemberModal = (record) => {
+      setEditMemberModalVisible(true);
+      console.log('edit member model', record);
+      form.setFieldsValue({
+        id: record._id,
+        name: record.name,
+        email: record.email,
+        phone: record.phone,
+    });
   };
 
   const submitEditedSession = async () =>{
@@ -251,7 +303,7 @@ function Dashboard() {
       hasAttended: editMemberAttended
     }
     try {
-      await api.patch(`/api/choir-sessions/${sessionId}`, {data});
+      await api.patch(`/api/v1/choir-sessions/${sessionId}`, {data});
 
       if(editModalVisible){
         setEditModalVisible(!editModalVisible);
@@ -260,13 +312,26 @@ function Dashboard() {
       if(editAttendanceModalVisible){
         setEditAttendanceModalVisible(!editAttendanceModalVisible);
       }
-
-
       await fetchChoirSessions();
     } catch (error) {
       console.log(error)
     }
   }
+
+
+
+  const showNewMemberModal = () => {
+    setNewMemberModalVisible(!newMemberModalVisible);
+  }
+
+  const closeNewMemberModal = () => {
+    setNewMemberModalVisible(!newMemberModalVisible)
+  }
+
+  const closeEditMemberModal = () => {
+    setEditMemberModalVisible(!editMemberModalVisible)
+  }
+
 
   const closeEditModal = async () => {
     setEditModalVisible(!editModalVisible);
@@ -277,7 +342,72 @@ function Dashboard() {
   };
 
 
+  const submitNewMember = async () =>{
+
+    await form.validateFields();
+
+    const values = form.getFieldsValue();
+
+    const data = {
+      name: values.name,
+      phone: values.phone,
+      email: values.email
+    }
+    try {
+    const response = await api.post(`/api/v1/members`, {data});
+
+    if(response) showMsg('success', response.data.message)
+
+    form.resetFields();
+
+    closeNewMemberModal();
+    fetchActiveMembers();
+
+
+    } catch (error) {
+      console.log('the error', error);
+      if(error) showMsg('error', error?.response?.data?.message);
+    }
+}
+
+const handleNewMemberFormChange = async () => {
+  try {
+    await form.validateFields();
+    setIsFormValid(true);
+  } catch {
+    setIsFormValid(false);
+  }
+};
+
+
+  const submitEditMember = async () => {
+
+    const values = form.getFieldsValue();
+    let memberId = values.id;
+
+    const data = {
+      name: values.name,
+      phone: values.phone,
+      email: values.email
+    }
+    try {
+    const response = await api.patch(`/api/v1/members/${memberId}`, {data});
+
+    if(response) showMsg('success', response.data.message)
+
+    form.resetFields();
+
+    closeEditMemberModal();
+    fetchActiveMembers();
+
+    } catch (error) {
+      console.log('the error', error);
+      if(error) showMsg('error', error?.response?.data?.message);
+    }
+}
+
   const submitNewSession = async () => {
+
 
     if (!selectSessionType || selectedMembers.length === 0 || !selectedDate) {
       console.log("Please select a session type, a date, and at least one member.");
@@ -319,7 +449,7 @@ function Dashboard() {
   };
 
 
-  const columns = [
+  const choirMemberColumns = [
     {
         title: '#',
         dataIndex: 'number',
@@ -333,7 +463,7 @@ function Dashboard() {
         key: 'options',
         render: (text, record) => (
           <>
-            <Button type="primary" onClick={() => handleEdit(record)}>Edit</Button>
+            <Button type="primary" onClick={() => showEditMemberModal(record)}>Edit</Button>
             <Button type="primary" danger onClick={() => handleDelete(record)} style={{ marginLeft: 8 }}>Delete</Button>
           </>
         )
@@ -391,33 +521,38 @@ function Dashboard() {
     }
   ];
 
-  const choirData = {
-    choirStats,
-    startDate,
-    endDate,
-    sessionType,
-  }
+
+  const handleDateChange = (dates) => {
+    if (dates && dates.length === 2) {
+      setSelectedDateRange(dates);
+    } else {
+      setSelectedDateRange(null);
+    }
+  };
+
 
   const renderContent = () => {
 
     switch (selectedKey) {
       case 'home':
         return (
-          <Stats>
+         <>
+            {contextHolder}
+           <Stats choirStats={choirStats}>
              <Row gutter={17}>
                 <Col span={6}>
                   <RangePicker
+                      value={selectedDateRange}
                       placeholder="Select date"
                       style={{ width: '100%', marginBottom: 16 }}
-                      // value={selectedDate}
-                      // onChange={handleSelectedDate}
+                      onChange={handleDateChange}
                       />
                   </Col>
                   <Col span={6}>
                       <Select
-                          // value={selectSessionType}
+                          value={statsSessionType}
                           placeholder="Session type"
-                          // onChange={handleSelectSessionType}
+                          onChange={handleStatsSessionType}
                           options={[
                           { value: 'rehearsal', label: 'Rehearsal' },
                           { value: 'prayer', label: 'Prayer' }
@@ -425,8 +560,10 @@ function Dashboard() {
                           style={{width: '100%',  marginBottom: 16}}
                     />
                   </Col>
+                <Button type="primary" onClick={()=>getChoirStats()}>Send</Button>
               </Row>
-          </Stats>
+            </Stats>
+         </>
         )
 
 
@@ -441,7 +578,82 @@ function Dashboard() {
                 onChange={(e) => setSearchText(e.target.value)}
                 style={{ marginBottom: 16, width: '30%', float: 'right' }}
              />
-            <Table dataSource={filteredMembers} columns={columns} rowKey="id"  style={{ width: '70vw' }} />
+             <Button type="primary" onClick={showNewMemberModal} icon={<PlusOutlined/>}>
+                Add member
+              </Button>
+
+            <Table
+              dataSource={filteredMembers}
+              columns={choirMemberColumns}
+              rowKey="id"
+              style={{ width: '70vw' }}
+              loading={loading}
+              />
+            <Modal
+                title="Add member"
+                open={newMemberModalVisible}
+                onOk={submitNewMember}
+                onCancel={closeNewMemberModal}
+                okButtonProps={{ disabled: !isFormValid }}
+                width={650}
+                >
+              {contextHolder}
+
+              <Form form={form} onValuesChange={handleNewMemberFormChange}>
+
+                <Form.Item
+                  label="Name"
+                  name="name"
+                  labelCol={{span: 24}}
+                  rules={[{ required: true, message: "Member's name is required!" }]}
+                  >
+                  <Input/>
+                </Form.Item>
+
+                  <Form.Item
+                    label="Phone"
+                    name="phone"
+                    rules={[{ required: true, message: "Member's phone is required!" }]}
+                    labelCol={{span: 24}}>
+                    <Input/>
+
+                  </Form.Item>
+
+                  <Form.Item label="Email"  name="email" labelCol={{span: 24}}>
+                    <Input/>
+                  </Form.Item>
+
+              </Form>
+            </Modal>
+
+            <Modal
+                title="Edit member"
+                open={editMemberModalVisible}
+                onOk={submitEditMember}
+                onCancel={closeEditMemberModal}
+                width={650}
+                >
+                {contextHolder}
+
+                <Form form={form}>
+
+                      <Form.Item label="Name" hidden name="id" labelCol={{span: 24}}>
+                        <Input />
+                      </Form.Item>
+
+                      <Form.Item label="Name" name="name" labelCol={{span: 24}}>
+                        <Input />
+                      </Form.Item>
+
+                      <Form.Item label="Email" name="email" labelCol={{span: 24}}>
+                        <Input/>
+                      </Form.Item>
+
+                      <Form.Item label="Phone" name="phone" labelCol={{span: 24}}>
+                        <Input/>
+                      </Form.Item>
+                </Form>
+            </Modal>
           </>
         );
       case 'choirSessions':
@@ -533,23 +745,30 @@ function Dashboard() {
                   onOk={submitEditedSession}
                   onCancel={closeEditModal}
                   >
-                    <DatePicker
-                      style={{ width: '100%', marginBottom: 16 }}
-                      value={editSessionDate}
-                      onChange={handleEditSessionDate}
+                <Form>
+
+                 <Form.Item label="Session date" labelCol={{span: 24}}>
+                  <DatePicker
+                        style={{ width: '100%', marginBottom: 16 }}
+                        value={editSessionDate}
+                        onChange={handleEditSessionDate}
+                    />
+                 </Form.Item>
+
+                 <Form.Item label="Session type" labelCol={{span: 24}}>
+                  <Select
+                    placeholder="Session type"
+                    value={editSessionType}
+                    onChange={handleEditSessionType}
+                    options={[
+                      { value: 'rehearsal', label: 'Rehearsal' },
+                      { value: 'prayer', label: 'Prayer' }
+                    ]}
+                    style={{width: '100%',  marginBottom: 16}}
+
                   />
-
-                <Select
-                  placeholder="Session type"
-                  value={editSessionType}
-                  onChange={handleEditSessionType}
-                  options={[
-                    { value: 'rehearsal', label: 'Rehearsal' },
-                    { value: 'prayer', label: 'Prayer' }
-                  ]}
-                  style={{width: '100%',  marginBottom: 16}}
-
-                />
+                 </Form.Item>
+                </Form>
 
               </Modal>
 
@@ -562,23 +781,23 @@ function Dashboard() {
                 >
                 <Form>
                   <Form.Item label="Name" labelCol={{span: 24}}>
-                      <Input
-                        value={memberName}
-                        contentEditable={false}
+                        <Input
+                          value={memberName}
+                          contentEditable={false}
+                          />
+                      </Form.Item>
+
+                      <Form.Item label="Attended" labelCol={{span: 24}}>
+                          <Select
+                          value={editMemberAttended}
+                          onChange={handleEditMemberAttended}
+                          options={[
+                            { value: true, label: 'Yes' },
+                            { value: false, label: 'No' }
+                          ]}
+                          style={{width: '100%',  marginBottom: 16}}
+
                         />
-                    </Form.Item>
-
-                    <Form.Item label="Attended" labelCol={{span: 24}}>
-                        <Select
-                        value={editMemberAttended}
-                        onChange={handleEditMemberAttended}
-                        options={[
-                          { value: true, label: 'Yes' },
-                          { value: false, label: 'No' }
-                        ]}
-                        style={{width: '100%',  marginBottom: 16}}
-
-                      />
                     </Form.Item>
                 </Form>
               </Modal>
@@ -594,7 +813,7 @@ function Dashboard() {
       <Sider theme="dark" collapsible>
         <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} onClick={handleMenuClick}>
           <Menu.Item key="home" icon={<HomeOutlined />}>Home</Menu.Item>
-          <Menu.Item key="activeMembers" icon={<BarChartOutlined />}>Active Members</Menu.Item>
+          <Menu.Item key="activeMembers" icon={<TeamOutlined />}>Active Members</Menu.Item>
           <Menu.Item key="choirSessions" icon={<ScheduleOutlined />}>Choir sessions</Menu.Item>
           <Menu.Item
             type="default"

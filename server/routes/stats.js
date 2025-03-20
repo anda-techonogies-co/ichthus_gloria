@@ -26,7 +26,7 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
         // Format dates using local timezone
         if (!startDate) startDate = formatLocalDate(firstDay);
         if (!endDate) endDate = formatLocalDate(lastDay);
-        if (!sessionType) sessionType = 'rehearsal';
+        if (!sessionType) sessionType = 'prayer';
 
 
         const allMembers = {
@@ -43,9 +43,6 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
             sessionType: sessionType
           });
 
-        if (!sessions.length) {
-            return res.status(404).json({ message: "No data found for the given criteria" });
-        }
 
         let totalAttended = 0;
         let totalAbsent = 0;
@@ -60,10 +57,12 @@ router.get('/stats', authMiddleware, adminMiddleware, async (req, res) => {
             });
         });
 
-        const attendanceStats = [
+        let attendanceStats = [
             { name: "Attended", value: totalAttended },
             { name: "Absent", value: totalAbsent }
         ];
+
+        if(totalAttended === 0 && totalAbsent === 0) attendanceStats = [];
 
         res.json({ attendanceStats, allMembers });
 

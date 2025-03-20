@@ -4,24 +4,37 @@ const Member = require('../models/Member');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 
-// Create a new choir member
 router.post('/members', authMiddleware, adminMiddleware,  async (req, res) => {
     try {
-        const { name, phone, email } = req.body;
+
+
+        let { name, phone, email } = req.body.data;
+
+        console.log('Type of Email:', typeof req.body.data.email);
+
+        phone = phone?.trim();
+        email = email?.trim().toLowerCase();
 
         if (!name) {
             return res.status(400).json({ message: "Member name is required." });
         }
 
-        const newMember = new Member({
-            name,
-            phone,
-            email
+        const existingMember = await Member.findOne({
+            $or: [
+                { $and: [{ phone: { $ne: null } }, { phone: phone }] },
+                { $and: [{ email: { $ne: null } }, { email: email }] }
+            ]
         });
 
-        const savedMember = await newMember.save();
+        if (existingMember) {
+            return res.status(409).json({ message: "Phone or email already exists." });
+        }
 
-        res.status(201).json(savedMember);
+        const newMember = new Member({ name, phone, email });
+
+        await newMember.save();
+
+        res.status(201).json({message: 'Success'});
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -48,5 +61,44 @@ router.get('/members', authMiddleware, adminMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
+// Update an existing choir member (PATCH for partial update, PUT for full update)
+router.patch('/members/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, phone, email } = req.body.data;
+
+        // Find the existing member
+        const member = await Member.findById(id);
+        if (!member) {
+            return res.status(404).json({ message: "Member not found." });
+        }
+
+        // Check if the new email or phone already exists in another member
+        if (phone || email) {
+            const existingMember = await Member.findOne({
+                $or: [{ phone }, { email }],
+                _id: { $ne: id }, // Exclude the current member
+            });
+
+            if (existingMember) {
+                return res.status(409).json({ message: "Phone or email already exists." });
+            }
+        }
+
+        // Update only provided fields
+        if (name) member.name = name;
+        if (phone) member.phone = phone;
+        if (email) member.email = email;
+
+        await member.save();
+
+        res.status(200).json({ message: "Member updated successfully." });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
 
 module.exports = router;

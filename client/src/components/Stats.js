@@ -9,15 +9,17 @@ const { RangePicker } = DatePicker;
 export const Stats = (props) => {
 
   const { choirStats, children } = props;
+  const { attendanceStats, allMembers } = choirStats || {};
 
   const options = {
     tooltip: { trigger: 'item' },
+    color: ['#1BA355','#B92821'],
     series: [
       {
         name: 'Attendance',
         type: 'pie',
         radius: '60%',
-        data: choirStats
+        data:  attendanceStats?.length && attendanceStats
       }
     ],
 
@@ -28,9 +30,9 @@ export const Stats = (props) => {
     <Title level={2}>Stats</Title>
 
     <Row gutter={[16, 16]}>
-        <Col span={8}><Card title="Total Members" variant="outlined">1,234</Card></Col>
-        <Col span={8}><Card title="Active Members" variant="outlined">42</Card></Col>
-        <Col span={8}><Card title="Inactive Members" variant="outlined">$56,789</Card></Col>
+        <Col span={8}><Card title="Total Members" variant="outlined">{allMembers?.totalMembers}</Card></Col>
+        <Col span={8}><Card title="Active Members" variant="outlined">{allMembers?.activeMembers}</Card></Col>
+        <Col span={8}><Card title="Inactive Members" variant="outlined">{allMembers?.inactiveMembers}</Card></Col>
     </Row>
     <Card title="Attendance" style={{marginTop: '100px'}}>
         {children}

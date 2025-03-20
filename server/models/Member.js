@@ -4,16 +4,22 @@ const memberSchema = mongoose.Schema(
     {
         name: {
             type: String,
-            required: [true, 'Please enter member name'],
+            required: [true, "Please enter member's name"],
         },
         phone: {
             type: String,
-            default: null,
+            required: [true, "Please enter member's phone"],
+            unique: true,
+            trim: true
         },
         email: {
             type: String,
+            required: false,
             default: null,
-            unique: true
+            unique: true,
+            lowercase: true,
+            sparse: true,
+            trim: true
         },
         password: {
             type: String,
