@@ -1,25 +1,26 @@
 require('dotenv').config();
 
-
 const express = require('express');
 const mongoose = require('mongoose');
+
+const cors = require('cors');
+const path = require("path");
+
 const memberRoutes = require('./routes/members');
 const sessionRoutes = require('./routes/sessions');
 const statsRoutes = require('./routes/stats');
 const authRoutes = require('./routes/auth');
-const cors = require('cors');
 
 
+const port = process.env.PORT || 5000;
 
 const app = express();
-app.use(express.json());
-
 app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true
-  }));
-
-app.listen(5000, ()=> console.log('App listening on port 5000'));
+    origin: '*',
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
 
 
 mongoose.connect(process.env.MONGO_URI, {
@@ -30,10 +31,20 @@ mongoose.connect(process.env.MONGO_URI, {
 .catch((err) => console.error('Connection failed...', err));
 
 
-app.get('/', (req, res)=> res.send('Hello World!'))
-
 app.use('/api/v1', authRoutes);
 app.use('/api/v1', memberRoutes);
 app.use('/api/v1', sessionRoutes);
 app.use('/api/v1', statsRoutes);
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Handle React routing, return all requests to React app
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
+
+app.listen(port, () => {
+    console.log(`App listening on port ${port}`);
+});
 

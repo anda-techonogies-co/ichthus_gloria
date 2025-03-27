@@ -6,18 +6,20 @@ import { Form, Input, Button, Typography, notification, Card, Row, Col } from 'a
 
 const { Title, Text } = Typography;
 
+const baseURL = process.env.REACT_APP_API_BASE;
+
+const api = axios.create({
+  baseURL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
-  const api = axios.create({
-    baseURL: 'http://localhost:5000',
-    withCredentials: true,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
 
   const handleSubmit = async (values) => {
     const { email, password } = values;

@@ -39,6 +39,9 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 const {RangePicker} = DatePicker;
 
+const baseURL = process.env.REACT_APP_API_BASE;
+
+
 function Dashboard() {
   const [selectedKey, setSelectedKey] = useState('home');
   const [activeMembers, setActiveMembers] = useState([]);
@@ -90,7 +93,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const token = localStorage.token;
   const api = axios.create({
-    baseURL: 'http://localhost:5000',
+    baseURL,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
