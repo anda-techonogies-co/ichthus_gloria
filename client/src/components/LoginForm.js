@@ -25,7 +25,7 @@ function LoginForm() {
     setError('');
 
     try {
-      const {data} = await api.post('/api/auth/login', { email, password });
+      const {data} = await api.post('/api/v1/auth/login', { email, password });
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('token', data.token);
       navigate('/dashboard');

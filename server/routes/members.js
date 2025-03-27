@@ -43,9 +43,17 @@ router.post('/members', authMiddleware, adminMiddleware,  async (req, res) => {
 
 router.post('/members/bulk-insert', async (req, res) => {
     try {
-       const members = req.body.members;
+
+       const members = req.body.members.map(member => {
+            return {
+                name: member.name,
+                phone: member.phone || null,
+                email: member.email ? member.email.toLowerCase() : undefined,
+                isAdmin: member.isAdmin || false
+            };
+        });
         await Member.insertMany(members);
-      res.status(201).json({ message: 'Members added successfully'});
+        res.status(201).json({ message: 'Members added successfully'});
     } catch (error) {
       res.status(500).json({ message: 'Error saving members', error: error.message });
     }
@@ -95,6 +103,24 @@ router.patch('/members/:id', authMiddleware, adminMiddleware, async (req, res) =
 
         res.status(200).json({ message: "Member updated successfully." });
 
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
+
+router.delete('/members/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find and delete the member
+        const deletedMember = await Member.findByIdAndDelete(id);
+
+        if (!deletedMember) {
+            return res.status(404).json({ message: "Member not found." });
+        }
+
+        res.status(200).json({ message: "Member deleted successfully." });
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });
     }

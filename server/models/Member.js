@@ -8,17 +8,15 @@ const memberSchema = mongoose.Schema(
         },
         phone: {
             type: String,
-            required: [true, "Please enter member's phone"],
             unique: true,
+            default: null,
             trim: true
         },
         email: {
             type: String,
             required: false,
             default: null,
-            unique: true,
             lowercase: true,
-            sparse: true,
             trim: true
         },
         password: {

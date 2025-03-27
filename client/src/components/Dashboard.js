@@ -30,6 +30,7 @@ import {
 import moment from 'moment';
 
 import * as emoji from 'node-emoji'
+
 import axios from 'axios';
 import { Stats } from './Stats';
 
@@ -44,6 +45,8 @@ function Dashboard() {
   const [choirSessions, setChoirSessions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deleteMemberModalOpen, setDeleteMemberModalOpen] = useState(false);
+  const [deleteSelectedMember, setDeleteSelectedMember] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState({});
   const [selectSessionType, setSelectSessionType] = useState('');
   const [editSessionType, setEditSessionType] = useState('');
@@ -186,12 +189,27 @@ function Dashboard() {
   };
 
 
-  const handleEdit = (record) => {
-    console.log('Edit:', record);
+  const handleDeleteMember = (record) => {
+    setDeleteMemberModalOpen(true);
+    setDeleteSelectedMember(record);
   };
 
-  const handleDelete = (record) => {
-    console.log('Delete:', record);
+  // Function to confirm deletion
+  const confirmDeleteMember = async () => {
+      if (!deleteSelectedMember) return;
+
+      try {
+          await api.delete(`/api/v1/members/${deleteSelectedMember._id}`);
+          fetchActiveMembers();
+          setDeleteMemberModalOpen(false);
+      } catch (error) {
+          console.error("Error deleting member:", error);
+      }
+  };
+
+  // Function to close modal without deleting
+  const handleCloseDeleteMemberModal = () => {
+      setDeleteMemberModalOpen(false);
   };
 
 
@@ -427,7 +445,7 @@ const handleNewMemberFormChange = async () => {
 
 
     try {
-      const response = await api.post('/api/choir-sessions', {data});
+      const response = await api.post('/api/v1/choir-sessions', {data});
 
       if (response.status !== 201) {
         throw new Error('Failed to create session');
@@ -464,7 +482,7 @@ const handleNewMemberFormChange = async () => {
         render: (text, record) => (
           <>
             <Button type="primary" onClick={() => showEditMemberModal(record)}>Edit</Button>
-            <Button type="primary" danger onClick={() => handleDelete(record)} style={{ marginLeft: 8 }}>Delete</Button>
+            <Button type="primary" danger onClick={() => handleDeleteMember(record)} style={{ marginLeft: 8 }}>Delete</Button>
           </>
         )
       }
@@ -653,6 +671,19 @@ const handleNewMemberFormChange = async () => {
                         <Input/>
                       </Form.Item>
                 </Form>
+            </Modal>
+
+            <Modal
+                title="Delete Member"
+                open={deleteMemberModalOpen}
+                onOk={confirmDeleteMember}
+                onCancel={handleCloseDeleteMemberModal}
+                okText="Yes"
+                okButtonProps={{ danger: true }}
+            >
+                {deleteSelectedMember && (
+                    <p>Are you sure you want to delete <b>{deleteSelectedMember.name}</b>?</p>
+                )}
             </Modal>
           </>
         );
