@@ -6,13 +6,16 @@ import { Form, Input, Button, Typography, notification, Card, Row, Col } from 'a
 
 const { Title, Text } = Typography;
 
+const baseURL = process.env.REACT_APP_API_BASE;
+
+
 function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const api = axios.create({
-    baseURL: 'http://localhost:5000',
+    baseURL,
     withCredentials: true,
     headers: {
       'Content-Type': 'application/json',
@@ -25,7 +28,7 @@ function LoginForm() {
     setError('');
 
     try {
-      const {data} = await api.post('/api/v1/auth/login', { email, password });
+      const {data} = await api.post('/auth/login', { email, password });
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('token', data.token);
       navigate('/dashboard');
