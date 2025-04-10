@@ -33,6 +33,7 @@ import * as emoji from 'node-emoji'
 
 import axios from 'axios';
 import { Stats } from './Stats';
+import { useIsSmallScreen } from '../utils/SmallScreen';
 
 const { Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -40,7 +41,7 @@ const { Search } = Input;
 const {RangePicker} = DatePicker;
 
 const baseURL = process.env.REACT_APP_API_BASE;
-
+const testPhase = process.env.REACT_APP_TEST_PHASE;
 
 function Dashboard() {
   const [selectedKey, setSelectedKey] = useState('home');
@@ -58,6 +59,8 @@ function Dashboard() {
   const [editAttendanceModalVisible, setEditAttendanceModalVisible] = useState(false);
   const [editMemberModalVisible, setEditMemberModalVisible] = useState(false);
 
+
+  
   const [form] = Form.useForm();
 
   const [isFormValid, setIsFormValid] = useState(false);
@@ -288,7 +291,9 @@ function Dashboard() {
 
     setEditModalVisible(!editModalVisible);
 
-    let {sessionDate, sessionType} = choirSessions[0]
+
+    let { sessionDate, sessionType } = choirSessions?.[0] || {};
+    
 
     setEditSessionDate(sessionDate ? moment(sessionDate) : null);
     setEditSessionType(sessionType);
@@ -552,6 +557,8 @@ const handleNewMemberFormChange = async () => {
   };
 
 
+  const isSmallScreen = useIsSmallScreen();
+
   const renderContent = () => {
 
     switch (selectedKey) {
@@ -560,8 +567,8 @@ const handleNewMemberFormChange = async () => {
          <>
             {contextHolder}
            <Stats choirStats={choirStats}>
-             <Row gutter={17}>
-                <Col span={6}>
+             <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} md={8}>
                   <RangePicker
                       value={selectedDateRange}
                       placeholder="Select date"
@@ -569,7 +576,7 @@ const handleNewMemberFormChange = async () => {
                       onChange={handleDateChange}
                       />
                   </Col>
-                  <Col span={6}>
+                  <Col xs={24} sm={12} md={8}>
                       <Select
                           value={statsSessionType}
                           placeholder="Session type"
@@ -581,7 +588,11 @@ const handleNewMemberFormChange = async () => {
                           style={{width: '100%',  marginBottom: 16}}
                     />
                   </Col>
-                <Button type="primary" onClick={()=>getChoirStats()}>Send</Button>
+                 <Col xs={24} md={8}>
+                  <Button type="primary" block onClick={getChoirStats} disabled={testPhase}>
+                    Send
+                  </Button>
+                </Col>
               </Row>
             </Stats>
          </>
@@ -591,17 +602,45 @@ const handleNewMemberFormChange = async () => {
       case 'activeMembers':
         return (
           <>
-            <Title level={2}>Active choir members</Title>
-            <Search
-                placeholder="Search member"
-                onSearch={handleSearch}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                style={{ marginBottom: 16, width: '30%', float: 'right' }}
-             />
-             <Button type="primary" onClick={showNewMemberModal} icon={<PlusOutlined/>}>
-                Add member
-              </Button>
+            <Row
+              gutter={[16, 16]}
+              justify={isSmallScreen ? "space-between" : "start"} 
+            >
+
+            <Col xs={24}>
+                <Title
+                level={2}
+                style={{ textAlign: isSmallScreen ? 'center' : 'left'}}
+                >
+                  Active choir members
+                </Title>
+              </Col> 
+
+               <Col xs={24} md={4}>
+                <Button
+                  type="primary"
+                  onClick={showNewMemberModal}
+                  icon={<PlusOutlined />}
+                  style={{width: '100%'}}
+                >
+                    Add member
+                </Button>
+              </Col>
+
+              <Col xs={24} md={20}>
+                <Search
+                    placeholder="Search member"
+                    onSearch={handleSearch}
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ 
+                      marginBottom: 16, width: isSmallScreen ? '100%' : '30%',
+                      float: 'right'
+                    }}
+                />
+              </Col>
+             
+            </Row>
 
             <Table
               dataSource={filteredMembers}
@@ -609,13 +648,15 @@ const handleNewMemberFormChange = async () => {
               rowKey="id"
               style={{ width: '70vw' }}
               loading={loading}
-              />
+              scroll={{ x: 'max-content' }}
+            />
+            
             <Modal
                 title="Add member"
                 open={newMemberModalVisible}
                 onOk={submitNewMember}
                 onCancel={closeNewMemberModal}
-                okButtonProps={{ disabled: !isFormValid }}
+                okButtonProps={{ disabled: !isFormValid || testPhase }}
                 width={650}
                 >
               {contextHolder}
@@ -652,6 +693,7 @@ const handleNewMemberFormChange = async () => {
                 open={editMemberModalVisible}
                 onOk={submitEditMember}
                 onCancel={closeEditMemberModal}
+                okButtonProps={{disabled: testPhase}}
                 width={650}
                 >
                 {contextHolder}
@@ -682,7 +724,8 @@ const handleNewMemberFormChange = async () => {
                 onOk={confirmDeleteMember}
                 onCancel={handleCloseDeleteMemberModal}
                 okText="Yes"
-                okButtonProps={{ danger: true }}
+                okButtonProps={{ danger: true, disabled: testPhase}}
+                
             >
                 {deleteSelectedMember && (
                     <p>Are you sure you want to delete <b>{deleteSelectedMember.name}</b>?</p>
@@ -693,39 +736,62 @@ const handleNewMemberFormChange = async () => {
       case 'choirSessions':
         return (
           <>
-            <Title level={2}>Choir Session</Title>
-            <Search
+            
+            <Row
+              gutter={[16, 16]}
+              justify={isSmallScreen ? "space-between" : "start"} 
+            >
+              <Col xs={24}>
+                <Title
+                level={2}
+                style={{ textAlign: isSmallScreen ? 'center' : 'left'}}
+                >
+                  Choir Session
+                </Title>
+              </Col>
+            
+              <Col xs={24} md={4}>
+                 <Space >
+                    <Button
+                        variant="solid"
+                        color="green"
+                        onClick={showModal}
+                        icon={<PlusOutlined />}
+                        >
+                          Add session
+                        </Button>
+
+                    <Button
+                        type="primary"
+                        variant='solid'
+                        onClick={showEditSessionModal}
+                        icon={<EditOutlined />}
+                        >
+                          Edit session
+                        </Button>
+                  </Space>
+               </Col>
+
+              <Col xs={24} md={20}>
+                
+                <Search
                   placeholder="Search member"
                   onSearch={handleSessionAttendeeSearch}
                   value={sessionAttendeeSearchText}
                   onChange={(e) => setSessionAttendeeSearchText(e.target.value)}
-                  style={{ marginBottom: 16, width: '30%', float: 'right' }}
+                  style={{ marginBottom: 16, width: isSmallScreen ? '100%' : '30%', float: 'right' }}
                 />
-             <Space >
-              <Button
-                  variant="solid"
-                  color="green"
-                  onClick={showModal}
-                  icon={<PlusOutlined />}
-                  >
-                    Add session
-                  </Button>
-
-              <Button
-                  type="primary"
-                  onClick={showEditSessionModal}
-                  icon={<EditOutlined />}
-                  >
-                    Edit session
-                  </Button>
-             </Space>
-
+              </Col>
+            
+            </Row>
             <Table
                 dataSource={filteredTransformedSessionData}
                 columns={choirSessionColumns}
                 rowKey="id"
                 style={{ width: '70vw' }}
                 loading={loading}
+                scroll={{ x: 'max-content' }}
+
                 />
 
             <Modal
@@ -734,6 +800,7 @@ const handleNewMemberFormChange = async () => {
                 onOk={submitNewSession}
                 onCancel={handleCancel}
                 width={650}
+                okButtonProps={{disabled: testPhase}}
                 >
               <Select
                 value={selectSessionType}
@@ -778,6 +845,7 @@ const handleNewMemberFormChange = async () => {
                   open={editModalVisible}
                   onOk={submitEditedSession}
                   onCancel={closeEditModal}
+                  okButtonProps={{disabled: testPhase}}
                   >
                 <Form>
 
@@ -844,7 +912,7 @@ const handleNewMemberFormChange = async () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark" collapsible>
+      <Sider theme="dark" collapsible   breakpoint="md">
         <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} onClick={handleMenuClick}>
           <Menu.Item key="home" icon={<HomeOutlined />}>Home</Menu.Item>
           <Menu.Item key="activeMembers" icon={<TeamOutlined />}>Active Members</Menu.Item>
