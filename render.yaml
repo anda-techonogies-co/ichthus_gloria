@@ -1,12 +1,12 @@
 services:
-  - name: choir-attendance-api
+  - name: choir-attendance-tracker-api
     type: web
     runtime: node
     env: node
     plan: free
     buildCommand: |
-      cd server
-      npm install
+      cd client && npm install && npm run build && \
+      cd ../server && npm install
     startCommand: cd server && node index.js
     envVars:
       - key: MONGO_URI
@@ -24,4 +24,4 @@ services:
 
     envVars:
       - key: REACT_APP_API_BASE
-        value: "https://choir-attendance-api.onrender.com"
+        value: "https://choir-attendance-tracker-api.onrender.com"
