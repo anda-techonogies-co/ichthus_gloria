@@ -21,7 +21,6 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon index.js",
     "client": "cd ../client && npm start"
-
   },
   "keywords": [],
   "author": "",

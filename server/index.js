@@ -1,4 +1,3 @@
-require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -11,12 +10,14 @@ const sessionRoutes = require('./routes/sessions');
 const statsRoutes = require('./routes/stats');
 const authRoutes = require('./routes/auth');
 
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
 
 const port = process.env.PORT || 5000;
 
 const app = express();
 app.use(cors({
-    origin: '*',
+    origin: 'https://choir-attendance-tracker.onrender.com',
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -36,13 +37,6 @@ app.use('/api/v1', memberRoutes);
 app.use('/api/v1', sessionRoutes);
 app.use('/api/v1', statsRoutes);
 
-// Serve static files from React build
-app.use(express.static(path.join(__dirname, '../client/build')));
-
-// Handle React routing, return all requests to React app
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build/index.html'));
-});
 
 app.listen(port, () => {
     console.log(`App listening on port ${port}`);
